@@ -61,6 +61,9 @@ fn main() {
         thread::sleep(Duration::from_millis(5000));
     });
     
+    let mut uvSensor = libs::veml6070::VEML6070{};
+
+
     toggle_leds();
 
     for notification in notifications {
