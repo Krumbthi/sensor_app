@@ -29,19 +29,22 @@ const INTEGRATIONTIME_4T: u8 = 0x03;
    --------------------------------------------------*/
 pub struct VEML6070 {
 	LightIntensity: f32,
-    IntegrationTime: f32,
+    IntegrationTime: u8,
     Rset: i32,
     Shutdown: u8,
     CaseSensIt: HashMap<u8, f32>,
     Dev: LinuxI2CDevice,
 }
 
+pub trait UVSensor {
+    fn new(dev_name: &'static str) -> Self;
+    fn getUV(&mut self) -> u16;
+}
+
 impl VEML6070 {
+    /*
     fn Setup(&mut self) {
-        self.Dev = LinuxI2CDevice::new("/dev/i2c-1", ADDR_L.into()).unwrap();
-        self.Rset = RSET_270K;
-        
-        self.CaseSensIt = HashMap::new();
+        //self.CaseSensIt = HashMap::new();
         self.CaseSensIt.insert(INTEGRATIONTIME_1_2T, 0.5);
         self.CaseSensIt.insert(INTEGRATIONTIME_1T, 1.0);
         self.CaseSensIt.insert(INTEGRATIONTIME_2T, 2.0);
@@ -61,7 +64,7 @@ impl VEML6070 {
 		self.Shutdown = SHUTDOWN_DISABLE;
         self.Dev.smbus_write_byte(self.GetCmdByte());
 	}
-
+    
     fn SetIntegrationTime(&mut self, intTime: u8) {
         self.IntegrationTime = intTime;
         self.Dev.smbus_write_byte(self.GetCmdByte());
@@ -69,20 +72,31 @@ impl VEML6070 {
         thread::sleep(Duration::from_millis(200));
     }
 
-	fn GetUvaLightIntensityRaw(&mut self) -> i16 {
+	fn GetUvaLightIntensityRaw(&mut self) -> u16 {
         self.Enable();
         // wait two times the refresh time to allow completion of a previous cycle with old settings (worst case)
-        thread::sleep(Duration::from_millis(self.GetRefreshTime() * 2));
+        thread::sleep(Duration::from_millis((self.GetRefreshTime() * 2.0) as u64));
         
         let mut buf: [u8; 2] = [0; 2];
         self.Dev.read(&mut buf);
-        let data = buf[0] + buf[1];
+        let data: u16 = ((buf[0] as u16) << 8) | buf[1] as u16;
         self.Disable();
         
         data
 	}
 
-	pub fn GetUvaLightIntensity(&mut self) -> i32 {
+    fn GetUvaLightSensitivity(&mut self) -> f32 {
+        // returns UVA light sensitivity in W/(m*m)/step
+        let mut caseSensRset = HashMap::new();
+        caseSensRset.insert(RSET_240K, 0.05);
+        caseSensRset.insert(RSET_270K, 0.05625);
+        caseSensRset.insert(RSET_300K, 0.0625);
+        caseSensRset.insert(RSET_600K, 0.125);
+
+        caseSensRset[&self.Rset] / self.CaseSensIt[&self.IntegrationTime]
+    }
+
+	pub fn GetUvaLightIntensity(&mut self) -> u16 {
         let uv = self.GetUvaLightIntensityRaw();
         uv * self.GetUvaLightSensitivity()
 	}
@@ -101,17 +115,39 @@ impl VEML6070 {
         caseSensRset.insert(RSET_300K, 0.125);
         caseSensRset.insert(RSET_600K, 0.25);
 
-        caseSensRset[&self.Rset] / self.CaseSensIt[self.IntegrationTime]
+        caseSensRset[&self.Rset] / self.CaseSensIt[&self.IntegrationTime]
+    }
+    */
+    pub fn ReadUV(&mut self) -> u16 {
+        let mut buf: [u8; 1] = [0; 1];
+        
+        self.Dev.smbus_write_byte(ADDR_H);
+        self.Dev.read(&mut buf);
+
+        let data: u16 = (buf[0] as u16) << 8;
+        
+        self.Dev.smbus_write_byte(ADDR_L);
+        self.Dev.read(&mut buf);
+
+        let uvi = data | (buf[0] as u16);
+        println!("UV: {:?}", uvi);
+        uvi
+    }
+}
+
+impl UVSensor for VEML6070 {
+    fn new(dev_name: &'static str) -> VEML6070 {
+        VEML6070 { 
+            LightIntensity: 0.0,
+            IntegrationTime: INTEGRATIONTIME_1T,
+            Rset: RSET_270K,
+            Shutdown: SHUTDOWN_DISABLE,
+            CaseSensIt: HashMap::new(),
+            Dev: LinuxI2CDevice::new(dev_name, ADDR_L.into()).unwrap()
+        }
     }
 
-    fn GetUvaLightSensitivity(&mut self) -> f32 {
-        // returns UVA light sensitivity in W/(m*m)/step
-        let mut caseSensRset = HashMap::new();
-        caseSensRset.insert(RSET_240K, 0.05);
-        caseSensRset.insert(RSET_270K, 0.05625);
-        caseSensRset.insert(RSET_300K, 0.0625);
-        caseSensRset.insert(RSET_600K, 0.125);
-
-        caseSensRset[&self.Rset] / self.CaseSensIt[self.IntegrationTime]
+    fn getUV(&mut self) -> u16 {
+        self.ReadUV()
     }
 }
