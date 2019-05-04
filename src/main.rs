@@ -12,6 +12,7 @@ use rumqtt::{MqttClient, MqttOptions, QoS};
 // HTU21D stuff
 // ------------------------------------------------------------------------------
 mod libs;
+use crate::libs::veml6070::VEML6070;
 
 // ------------------------------------------------------------------------------
 // GPIO stuff
@@ -52,17 +53,17 @@ fn main() {
         
     //    read_mcp();
     let mut htu21_sen = libs::htu21::HTU21Sensor{ Temperatur: 0.0, Humidity: 0.0, Dev: LinuxI2CDevice::new("/dev/i2c-1", libs::htu21::SLAVE_ADDR_PRIMARY).unwrap() };
+    let mut uvSensor: VEML6070 = libs::veml6070::UVSensor::new("/dev/i2c-1");
+
     thread::spawn(move || loop {
         htu21_sen.Process();
-        
-        let payload = format!("publish Temp={}; Hum={}", htu21_sen.Temperatur, htu21_sen.Humidity);
+        let uv = uvSensor.ReadUV();
+
+        let payload = format!("publish Temp={}; Hum={}; UV={}", htu21_sen.Temperatur, htu21_sen.Humidity, uv);
         mqtt_client.publish("home/rust", QoS::AtLeastOnce, false, payload).unwrap();
         // at least sleep for 5 seconds
         thread::sleep(Duration::from_millis(5000));
     });
-    
-    let mut uvSensor = libs::veml6070::VEML6070{};
-
 
     toggle_leds();
 
