@@ -277,7 +277,7 @@ impl BMP280 {
         let press3 = 1048576.0 - adc_p;
         if (press1 != 0.0) {
             press3 = (press3 - press2 / 4096.0) * 6250.0 / press1;
-            press1 = P[8]) * press3 * press3 / 2147483648.0;
+            press1 = P[8] * press3 * press3 / 2147483648.0;
             press2 = press3 * P[7] / 32768.0;
             Data->pressure = (press3 + (press1 + press2 + (P[6])) / 16.0) / 100;
         } else { 
