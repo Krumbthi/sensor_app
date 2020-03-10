@@ -1,6 +1,7 @@
 extern crate byteorder;
 use i2cdev::linux::*;
 
+/***************
 mod sensors {
     use std::error::Error;
 
@@ -150,14 +151,43 @@ mod sensors {
         }
     }
 }
+*/
 
+pub const BMP280_I2C_ADDR_PRIM: u8 = 0x76;
+pub const BMP280_CHIP_ID: u8 = 0x60
 
+///! name Register Address 
+pub const BMP280_CHIP_ID_ADDR: u8 = 0xD0;
+const BMP280_RESET_ADDR: u8 = 0xE0;
+const BMP280_STATUS_ADDR:u8 = 0xF3;
+const BMP280_TEMP_PRESS_CALIB_DATA_ADDR: u8 = 0x88;
+const BMP280_HUMIDITY_CALIB_DATA_ADDR: u8 = 0xE1;
+const BMP280_PWR_CTRL_ADDR: u8 = 0xF4;
+const BMP280_CTRL_HUM_ADDR: u8 = 0xF2;
+const BMP280_CTRL_MEAS_ADDR: u8 = 0xF4;
+const BMP280_CONFIG_ADDR: u8 = 0xF5;
+const BMP280_DATA_ADDR: u8 = 0xF7
+const BMP280_SOFT_RESET_CMD: u8 = 0xB6
+const BMP280_TEMP_PRESS_CALIB_DATA_LEN: u8 = 24
+const ALTITUDE: i32 = 500;
+const SLEEP_TIME: u64 = 40;
 
+pub struct BMP280 {
+	pub temperatur: f32,
+    pub pressure: f32,
+    pub pressure_nn: f32,
+    Dev: LinuxI2CDevice,
+}
 
+pub trait BMPSensor {
+    fn new(dev_name: &'static str) -> Self;
+    // fn getTemp(&mut self) -> f32;
+    // fn getPres(&mut self) -> f32;
+    // fn getPresNN(&mut self) -> f32;
+    fn process(&mut self);
+}
 
-
-
-impl BMP280Sensor {
+impl BMP280 {
     pub fn Setup(&mut self) {
         // soft resetpressure_nn
         self.soft_reset();
@@ -166,7 +196,7 @@ impl BMP280Sensor {
         let chip_id: u8 = self.Dev.smbus_read_byte_data(BMP280_CHIP_ID_ADDR);
 
         if (chip_id == BMP280_CHIP_ID) {
-            rslt = this->GetCalibData();
+            rslt = get_calib_data();
             config[0] = 0xF4;
             config[1] = 0x27;
             rslt = IFace->WriteData(BME280_CTRL_MEAS_ADDR, config, ARRAY_SIZE(config));
@@ -259,4 +289,17 @@ impl BMP280Sensor {
     }
 }
 
+impl BMPSensor for BMP280 {
+    fn new(dev_name: &'static str) -> BMP280 {
+        BMP280 { 
+            temperature: 0.0,
+            pressure: 0.0,
+            pressure_nn: 0.0,
+            Dev: LinuxI2CDevice::new(dev_name, ADDR_L.into()).unwrap()
+        }
+    }
 
+    fn process(&mut self) {
+        self.Process()
+    }
+}
