@@ -154,7 +154,7 @@ mod sensors {
 */
 
 pub const BMP280_I2C_ADDR_PRIM: u8 = 0x76;
-pub const BMP280_CHIP_ID: u8 = 0x60
+pub const BMP280_CHIP_ID: u8 = 0x60;
 
 ///! name Register Address 
 pub const BMP280_CHIP_ID_ADDR: u8 = 0xD0;
