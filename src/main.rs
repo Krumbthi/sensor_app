@@ -24,9 +24,9 @@ fn toggle_leds(val: f32) {
     // Let's open GPIO23 and -24, e.g. on a Raspberry Pi 2.
     let mut green = gpio::sysfs::SysFsGpioOutput::open(20).unwrap();
     let mut red = gpio::sysfs::SysFsGpioOutput::open(26).unwrap();
-  
-    let mut value = false;
+
     /* GPIO24 will be toggled every second in the background by a different thread
+    let mut value = false;
     thread::spawn(move || loop {
         green.set_value(value).expect("could not set gpio20");
         thread::sleep(Duration::from_millis(1000));
@@ -39,18 +39,21 @@ fn toggle_leds(val: f32) {
         thread::sleep(Duration::from_millis(100));
         value = !value;
     }*/
-	println!("TempValue: {:?}", val);
-	
-	if val > 0.0 && val < 19.5 {
-		green.set_value(value).expect("error");
-		red.set_value(!value).expect("error");
-	} else if val > 27.0 {
-    	green.set_value(value).expect("could not set gpio20");
-        red.set_value(!value).expect("could not set gpio26");
-	} else if val < 26.9 && val > 19.6 {
-        green.set_value(!value).expect("could not set gpio20");
-        red.set_value(value).expect("could not set gpio26");
-	}
+    match val {
+        19.5 ... 25.5 => {
+            green.set_value(ON).expect("could not set gpio20");
+            red.set_value(OFF).expect("could not set gpio26");
+        },
+        0.0 ...19.4 => {
+            green.set_value(OFF).expect("could not set gpio20");
+            red.set_value(ON).expect("could not set gpio26");  
+        },
+        25.6 ... 33.0 => {
+            green.set_value(OFF).expect("could not set gpio20");
+            red.set_value(ON).expect("could not set gpio26");
+        },
+        _ => println!("{:?}", val),
+    }
 }
 
 // ------------------------------------------------------------------------------
@@ -64,7 +67,7 @@ fn main() {
     let mqtt_options = MqttOptions::new("test-pubsub1", "192.168.2.2", 1883);
     let (mut mqtt_client, notifications) = MqttClient::start(mqtt_options).unwrap();
 
-    mqtt_client.subscribe("home/rust", QoS::AtLeastOnce).unwrap();
+    mqtt_client.subscribe("sensor/oben", QoS::AtLeastOnce).unwrap();
         
     //    read_mcp();
     let mut htu21_sen = libs::htu21::HTU21Sensor{ Temperatur: 0.0, Humidity: 0.0, Dev: LinuxI2CDevice::new("/dev/i2c-1", libs::htu21::SLAVE_ADDR_PRIMARY).unwrap() };
@@ -73,11 +76,10 @@ fn main() {
     thread::spawn(move || loop {
         htu21_sen.Process();
         let uv = uvSensor.ReadUV();
-        toggle_leds(htu21_sen.Temperatur);
-
         let payload = format!("{{\"Oben\": {{\"Temperature\":{}, \"Humidity\":{}, \"UV\":{}}}}}", htu21_sen.Temperatur, htu21_sen.Humidity, uv);
         mqtt_client.publish("sensor/oben", QoS::AtLeastOnce, false, payload).unwrap();
         
+        toggle_leds(htu21_sen.Temperatur);
         // at least sleep for 5 seconds
         thread::sleep(Duration::from_millis(60000));
     });
