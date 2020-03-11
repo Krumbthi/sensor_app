@@ -255,7 +255,8 @@ impl BMP280 {
         self.P[0] = p[0] as f32;
 
         for i in 0..8 {
-            p[i+1] = reg_data[2*i+9] * 256 + reg_data[2*i+8];            
+            p[i+1] = (reg_data[2*i+9] * 256 + reg_data[2*i+8]).into();
+            //p[i+1] = reg_data[2*i+9] * 256 + reg_data[2*i+8];            
             if p[i+1] > 32767 { 
                 p[i+1] -= 65536; 
             }
@@ -299,7 +300,7 @@ impl BMP280 {
         } else { 
             self.pressure = 0.0; 
         }
-        let p: f32 = 1 - ALTITUDE / 44330.0;
+        let p: f32 = 1f32 - ALTITUDE / 44330.0;
         self.pressure_nn = self.pressure / p.powf(5.255);
     }
 }
@@ -310,8 +311,8 @@ impl BMPSensor for BMP280 {
             temperature: 0.0,
             pressure: 0.0,
             pressure_nn: 0.0,
-            T: [0, 3],
-            P: [0, 9],
+            T: [0f32, 3],
+            P: [0f32, 9],
             Dev: LinuxI2CDevice::new(dev_name, BMP280_I2C_ADDR_PRIM.into()).unwrap()
         }
     }
