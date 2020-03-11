@@ -199,7 +199,7 @@ impl BMP280 {
 
         let chip_id: u8 = self.Dev.smbus_read_byte_data(BMP280_CHIP_ID_ADDR);
 
-        if (chip_id == BMP280_CHIP_ID) {
+        if chip_id == BMP280_CHIP_ID {
             self.get_calib_data();
             self.Dev.smbus_write_byte_data(BMP280_CTRL_MEAS_ADDR, 0x27)?;
             self.Dev.smbus_write_byte_data(BMP280_CONFIG_ADDR, 0xA0);
@@ -253,7 +253,7 @@ impl BMP280 {
         }
     }
 
-    pub fn Process(&mut self) -> Result<(), LinuxI2CError> {   
+    pub fn Process(&mut self) -> Result<()> {   
         let mut comp_data: [u8; 6] = [0; 6];
         
         // read humidity
