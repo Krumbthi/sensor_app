@@ -178,7 +178,7 @@ pub struct BMP280 {
 	pub temperature: f32,
     pub pressure: f32,
     pub pressure_nn: f32,
-    IFace: LinuxI2CDevice,
+    Dev: LinuxI2CDevice,
 }
 
 pub trait BMPSensor {
@@ -198,7 +198,7 @@ impl BMP280 {
         let chip_id: u8 = self.Dev.smbus_read_byte_data(BMP280_CHIP_ID_ADDR);
 
         if (chip_id == BMP280_CHIP_ID) {
-            rslt = get_calib_data();
+            self.get_calib_data();
             self.Dev.smbus_write_byte_data(BMP280_CTRL_MEAS_ADDR, 0x27)?;
             self.Dev.smbus_write_byte_data(BMP280_CONFIG_ADDR, 0xA0);
             thread::sleep(Duration::from_millis(1000));
@@ -215,18 +215,21 @@ impl BMP280 {
     fn get_calib_data(&mut self) {
         let reg_addr: u8 = BMP280_TEMP_PRESS_CALIB_DATA_ADDR;
         // Array to store calibration data 
-        let mut calib_data: [u8: BMP280_TEMP_PRESS_CALIB_DATA_LEN] = [0u8; BMP280_TEMP_PRESS_CALIB_DATA_LEN];
+        let mut calib_data: [u8; BMP280_TEMP_PRESS_CALIB_DATA_LEN] = [0u8; BMP280_TEMP_PRESS_CALIB_DATA_LEN];
 
         // Read the calibration data from the sensor 
         self.Dev.write(&[reg_addr])?;
         self.Dev.read(&mut calib_data)?;
 
-        parse_temp_calib_data(&mut calib_data);
+        self.parse_temp_calib_data(&mut calib_data);
     }
 
     fn parse_temp_calib_data(&mut self, mut reg_data: u8) {
         //T[0] = BME280_CONCAT_BYTES(reg_data[1], reg_data[0]);
         //T[1] = BME280_CONCAT_BYTES(reg_data[3], reg_data[2]);
+        let mut T: [u16; 3] = [0; 3];
+        let mut P: [u16; 9] = [0; 9];
+
         T[0] = ((reg_data[0] as u16) << 8) | reg_data[1] as u16;
         T[1] = ((reg_data[2] as u16) << 8) | reg_data[3] as u16;
         if(T[1] > 32767) { 
@@ -240,7 +243,7 @@ impl BMP280 {
         
         P[0] = ((reg_data[6] as u16) << 8) | reg_data[7] as u16;
 
-        for (int i = 0; i < 8; i++) {
+        for i in 0..8 {
             P[i+1] = reg_data[2*i+9]*256 + reg_data[2*i+8];
             if(P[i+1] > 32767) { 
                 P[i+1] -= 65536; 
@@ -269,8 +272,8 @@ impl BMP280 {
         self.temperature = (temp1 + temp2) / 5120.0;
 
         // pressure offset calculations
-        let press1 = ((temp1 + temp2) / 2.0) - 64000.0;
-        let press2 = press1 * press1 * P[5] / 32768.0;
+        let mut press1 = ((temp1 + temp2) / 2.0) - 64000.0;
+        let mut press2 = press1 * press1 * P[5] / 32768.0;
         press2 = press2 + press1 * P[4] * 2.0;
         press2 = (press2 / 4.0) + (P[3] * 65536.0);
         press1 = P[2] * press1 * press1 / 524288.0 + ( P[1] * press1) / 524288.0;
