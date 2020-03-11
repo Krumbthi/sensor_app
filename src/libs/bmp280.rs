@@ -188,7 +188,7 @@ pub trait BMPSensor {
     // fn getTemp(&mut self) -> f32;
     // fn getPres(&mut self) -> f32;
     // fn getPresNN(&mut self) -> f32;
-    fn process(&mut self) -> Result<()>;
+    fn process(&mut self);
 }
 
 impl BMP280 {
@@ -253,7 +253,7 @@ impl BMP280 {
         }
     }
 
-    pub fn Process(&mut self) -> Result<()> {   
+    pub fn Process(&mut self) {   
         let mut comp_data: [u8; 6] = [0; 6];
         
         // read humidity
@@ -291,8 +291,6 @@ impl BMP280 {
         }
         let p: f32 = 1 - ALTITUDE / 44330.0;
         self.pressure_nn = self.pressure / p.pow(5.255);
-    
-        Ok(())
     }
 }
 
@@ -306,7 +304,7 @@ impl BMPSensor for BMP280 {
         }
     }
 
-    fn process(&mut self) -> Result<()> {
+    fn process(&mut self) {
         self.Process()
     }
 }
