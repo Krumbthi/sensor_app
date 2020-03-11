@@ -64,10 +64,7 @@ fn main() {
     thread::spawn(move || loop {
         htu21_sen.Process();
         bmp.Process();
-
         let uv = uvSensor.ReadUV();
-        println!("BMP Temp: {:?}", bmp.temperature);
-        println!("BMP Pres: {:?}", bmp.pressure);
 
         let payload = format!("{{\"Oben\": {{\"Temperature\":{}, \"Humidity\":{}, \"UV\":{}}}}}", htu21_sen.Temperatur, htu21_sen.Humidity, uv);
         mqtt_client.publish("sensor/oben", QoS::AtLeastOnce, false, payload).unwrap();

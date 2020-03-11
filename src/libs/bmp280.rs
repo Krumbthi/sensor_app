@@ -271,6 +271,7 @@ impl BMP280 {
         let temp3 = adc_t / 131072.0 - (self.T[0] / 8192.0);
         let temp2 = temp3 * temp3 * self.T[2];
         self.temperature = (temp1 + temp2) / 5120.0;
+        println!("BMP280 Temperature: {:?}", self.temperature);
 
         // pressure offset calculations
         let mut press1 = ((temp1 + temp2) / 2.0) - 64000.0;
@@ -288,6 +289,9 @@ impl BMP280 {
         } else { 
             self.pressure = 0.0; 
         }
+        
+        println!("BMP280 Pressure: {:?}", self.temperature);
+
         let p: f32 = 1f32 - ALTITUDE / 44330.0;
         self.pressure_nn = self.pressure / p.powf(5.255);
     }
