@@ -1,4 +1,6 @@
 extern crate byteorder;
+use std::thread;
+use std::time::Duration;
 use i2cdev::linux::*;
 
 /***************
@@ -197,21 +199,21 @@ impl BMP280 {
 
         if (chip_id == BMP280_CHIP_ID) {
             rslt = get_calib_data();
-            self.Dev.smbus_write_byte_data(BME280_CTRL_MEAS_ADDR, 0x27)?;
-            self.Dev.smbus_write_byte_data(BME280_CONFIG_ADDR, 0xA0);
+            self.Dev.smbus_write_byte_data(BMP280_CTRL_MEAS_ADDR, 0x27)?;
+            self.Dev.smbus_write_byte_data(BMP280_CONFIG_ADDR, 0xA0);
             thread::sleep(Duration::from_millis(1000));
         }
     }
 
-    pub fn soft_reset() {
+    pub fn soft_reset(&self) {
         let rslt: bool;
         
         self.Dev.smbus_write_byte_data(BMP280_RESET_ADDR, BMP280_SOFT_RESET_CMD);
         thread::sleep(Duration::from_millis(SLEEP_TIME));
     }
 
-    fn get_calib_data() {
-        let reg_addr: u8 = BME280_TEMP_PRESS_CALIB_DATA_ADDR;
+    fn get_calib_data(&mut self) {
+        let reg_addr: u8 = BMP280_TEMP_PRESS_CALIB_DATA_ADDR;
         // Array to store calibration data 
         let mut calib_data: [u8: BMP280_TEMP_PRESS_CALIB_DATA_LEN] = [0u8; BMP280_TEMP_PRESS_CALIB_DATA_LEN];
 
@@ -219,10 +221,10 @@ impl BMP280 {
         self.Dev.write(&[reg_addr])?;
         self.Dev.read(&mut calib_data)?;
 
-        parse_temp_calib_data(calib_data);
+        parse_temp_calib_data(&mut calib_data);
     }
 
-    fn parse_temp_calib_data(const *reg_data: u8) {
+    fn parse_temp_calib_data(&mut self, mut reg_data: u8) {
         //T[0] = BME280_CONCAT_BYTES(reg_data[1], reg_data[0]);
         //T[1] = BME280_CONCAT_BYTES(reg_data[3], reg_data[2]);
         T[0] = ((reg_data[0] as u16) << 8) | reg_data[1] as u16;
