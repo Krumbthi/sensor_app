@@ -178,8 +178,8 @@ pub struct BMP280 {
 	pub temperature: f32,
     pub pressure: f32,
     pub pressure_nn: f32,
-    mut T: [u16; 3],
-    mut P: [u16; 9],
+    T: [u16; 3],
+    P: [u16; 9],
     Dev: LinuxI2CDevice,
 }
 
