@@ -73,7 +73,7 @@ fn main() {
     let mut htu21_sen = libs::htu21::HTU21Sensor{ Temperatur: 0.0, Humidity: 0.0, Dev: LinuxI2CDevice::new("/dev/i2c-1", libs::htu21::SLAVE_ADDR_PRIMARY).unwrap() };
     let mut uvSensor: VEML6070 = libs::veml6070::UVSensor::new("/dev/i2c-1");
     let mut bmp: BMP280 = libs::bmp280::BMPSensor::new("/dev/i2c-1");
-
+    
     thread::spawn(move || loop {
         htu21_sen.Process();
         bmp.Process();

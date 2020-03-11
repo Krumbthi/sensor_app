@@ -178,6 +178,8 @@ pub struct BMP280 {
 	pub temperature: f32,
     pub pressure: f32,
     pub pressure_nn: f32,
+    mut T: [u16; 3],
+    mut P: [u16; 9],
     Dev: LinuxI2CDevice,
 }
 
@@ -227,8 +229,8 @@ impl BMP280 {
     fn parse_temp_calib_data(&mut self, mut reg_data: u8) {
         //T[0] = BME280_CONCAT_BYTES(reg_data[1], reg_data[0]);
         //T[1] = BME280_CONCAT_BYTES(reg_data[3], reg_data[2]);
-        let mut T: [u16; 3] = [0; 3];
-        let mut P: [u16; 9] = [0; 9];
+        // let mut T: [u16; 3] = [0; 3];
+        // let mut P: [u16; 9] = [0; 9];
 
         T[0] = ((reg_data[0] as u16) << 8) | reg_data[1] as u16;
         T[1] = ((reg_data[2] as u16) << 8) | reg_data[3] as u16;
