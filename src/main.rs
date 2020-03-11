@@ -1,4 +1,7 @@
 extern crate i2cdev;
+extern crate bmp280;
+
+use bmp280::Bmp280Builder;
 use i2cdev::linux::LinuxI2CDevice;
 
 use std::thread;
@@ -13,7 +16,7 @@ use rumqtt::{MqttClient, MqttOptions, QoS};
 // ------------------------------------------------------------------------------
 mod libs;
 use crate::libs::veml6070::VEML6070;
-use crate::libs::bmp280::BMP280;
+//use crate::libs::bmp280::BMP280;
 
 const OFF: u8 = 0;
 const ON: u8 = 1;
@@ -59,12 +62,23 @@ fn main() {
     //    read_mcp();
     let mut htu21_sen = libs::htu21::HTU21Sensor{ Temperatur: 0.0, Humidity: 0.0, Dev: LinuxI2CDevice::new("/dev/i2c-1", libs::htu21::SLAVE_ADDR_PRIMARY).unwrap() };
     let mut uvSensor: VEML6070 = libs::veml6070::UVSensor::new("/dev/i2c-1");
-    let mut bmp: BMP280 = libs::bmp280::BMPSensor::new("/dev/i2c-1");
+    //let mut bmp: BMP280 = libs::bmp280::BMPSensor::new("/dev/i2c-1");
+    let mut dev = Bmp280Builder::new()
+        .path("/dev/i2c-1".to_string())
+        .address(0x76)
+        .build()
+        .expect("Failed to build device");
+
+    dev.zero().expect("failed to zero");
     
     thread::spawn(move || loop {
         htu21_sen.Process();
         bmp.Process();
         let uv = uvSensor.ReadUV();
+        
+        println!("{:?} kPa", dev.pressure_kpa().unwrap());
+        println!("{:?} m", dev.altitude_m().unwrap());
+        println!("{:?} c", dev.temperature_celsius().unwrap());
 
         let payload = format!("{{\"Oben\": {{\"Temperature\":{}, \"Humidity\":{}, \"UV\":{}}}}}", htu21_sen.Temperatur, htu21_sen.Humidity, uv);
         mqtt_client.publish("sensor/oben", QoS::AtLeastOnce, false, payload).unwrap();
