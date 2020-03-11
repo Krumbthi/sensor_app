@@ -263,8 +263,8 @@ impl BMP280 {
         thread::sleep(Duration::from_millis(10));
 
         // Convert pressure and temperature data to 19-bits
-        let adc_p: f32 = ((comp_data[0] << 12) + (comp_data[1] << 4) + (comp_data[2] >> 4)) as f32;
-        let adc_t: f32 = ((comp_data[3] << 12) + (comp_data[4] << 4) + (comp_data[5] >> 4)) as f32;
+        let adc_p: f32 = (((comp_data[0] as u32) << 12) + ((comp_data[1] as u32) << 4) + ((comp_data[2] as u32) >> 4)).into();
+        let adc_t: f32 = (( (comp_data[3] as u32) << 12) + ((comp_data[4] as u32) << 4) + ((comp_data[5] as u32) >> 4)).into();
 
         // temperature offset calculations
         let temp1 = adc_t / 16384.0 - (self.T[0] / 1024.0) * self.T[1];
