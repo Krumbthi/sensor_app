@@ -1,7 +1,8 @@
-extern crate byteorder;
 use std::thread;
 use std::time::Duration;
-use i2cdev::linux::*;
+
+use i2cdev::core::*;
+use i2cdev::linux::{LinuxI2CDevice, LinuxI2CError};
 
 /***************
 mod sensors {
@@ -170,7 +171,7 @@ const BMP280_CTRL_MEAS_ADDR: u8 = 0xF4;
 const BMP280_CONFIG_ADDR: u8 = 0xF5;
 const BMP280_DATA_ADDR: u8 = 0xF7;
 const BMP280_SOFT_RESET_CMD: u8 = 0xB6;
-const BMP280_TEMP_PRESS_CALIB_DATA_LEN: u8 = 24;
+const BMP280_TEMP_PRESS_CALIB_DATA_LEN: usize = 24;
 const ALTITUDE: i32 = 500;
 const SLEEP_TIME: u64 = 40;
 
@@ -192,12 +193,14 @@ pub trait BMPSensor {
 }
 
 impl BMP280 {
-    pub fn Setup(&mut self) {
+    pub fn Setup(&mut self) -> Result<(), LinuxI2CError> {
         // soft resetpressure_nn
         self.soft_reset();
         println!("Soft Reset done!");
 
-        let chip_id: u8 = self.Dev.smbus_read_byte_data(BMP280_CHIP_ID_ADDR);
+        let mut chip_id: u8; // = self.Dev.smbus_read_byte_data(BMP280_CHIP_ID_ADDR);
+        self.Dev.write(&[BMP280_CHIP_ID_ADDR])?;
+        self.Dev.read(&mut chip_id)?;
 
         if chip_id == BMP280_CHIP_ID {
             self.get_calib_data();
@@ -205,6 +208,8 @@ impl BMP280 {
             self.Dev.smbus_write_byte_data(BMP280_CONFIG_ADDR, 0xA0);
             thread::sleep(Duration::from_millis(1000));
         }
+        
+        OK(())
     }
 
     pub fn soft_reset(&self) {
@@ -214,7 +219,7 @@ impl BMP280 {
         thread::sleep(Duration::from_millis(SLEEP_TIME));
     }
 
-    fn get_calib_data(&mut self) {
+    fn get_calib_data(&mut self) -> Result<(), LinuxI2CError> {
         let reg_addr: u8 = BMP280_TEMP_PRESS_CALIB_DATA_ADDR;
         // Array to store calibration data 
         let mut calib_data: [u8; BMP280_TEMP_PRESS_CALIB_DATA_LEN] = [0u8; BMP280_TEMP_PRESS_CALIB_DATA_LEN];
@@ -226,7 +231,7 @@ impl BMP280 {
         self.parse_temp_calib_data(&mut calib_data);
     }
 
-    fn parse_temp_calib_data(&mut self, mut reg_data: u8) {
+    fn parse_temp_calib_data(&mut self, &mut reg_data: u8) {
         //T[0] = BME280_CONCAT_BYTES(reg_data[1], reg_data[0]);
         //T[1] = BME280_CONCAT_BYTES(reg_data[3], reg_data[2]);
         // let mut T: [u16; 3] = [0; 3];
