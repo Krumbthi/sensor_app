@@ -1,5 +1,3 @@
-use std::thread;
-use std::time::Duration;
 use std::collections::HashMap;
 
 use i2cdev::core::*;
