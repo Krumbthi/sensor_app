@@ -290,7 +290,7 @@ impl BMP280 {
             self.pressure = 0.0; 
         }
         
-        println!("BMP280 Pressure: {:?}", self.temperature);
+        println!("BMP280 Pressure: {:?}", self.pressure);
 
         let p: f32 = 1f32 - ALTITUDE / 44330.0;
         self.pressure_nn = self.pressure / p.powf(5.255);
