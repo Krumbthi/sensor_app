@@ -188,7 +188,7 @@ pub trait BMPSensor {
     // fn getTemp(&mut self) -> f32;
     // fn getPres(&mut self) -> f32;
     // fn getPresNN(&mut self) -> f32;
-    fn process(&mut self);
+    fn process(&mut self) -> Result<()>;
 }
 
 impl BMP280 {
@@ -234,12 +234,12 @@ impl BMP280 {
 
         self.T[0] = ((reg_data[0] as u16) << 8) | reg_data[1] as u16;
         self.T[1] = ((reg_data[2] as u16) << 8) | reg_data[3] as u16;
-        if(self.T[1] > 32767) { 
+        if self.T[1] > 32767 { 
             self.T[1] -= 65536; 
         }
 
         self.T[2] = ((reg_data[4] as u16) << 8) | reg_data[5] as u16;
-        if(self.T[2] > 32767) { 
+        if self.T[2] > 32767 { 
             self.T[2] -= 65536; 
         }
         
@@ -247,7 +247,7 @@ impl BMP280 {
 
         for i in 0..8 {
             self.P[i+1] = reg_data[2*i+9]*256 + reg_data[2*i+8];
-            if(self.P[i+1] > 32767) { 
+            if self.P[i+1] > 32767 { 
                 self.P[i+1] -= 65536; 
             }
         }
@@ -279,9 +279,9 @@ impl BMP280 {
         press2 = press2 + press1 * self.P[4] * 2.0;
         press2 = (press2 / 4.0) + (self.P[3] * 65536.0);
         press1 = self.P[2] * press1 * press1 / 524288.0 + (self.P[1] * press1) / 524288.0;
-        press1 = (1.0 + press1 / 32768.0) * (P[0]);
+        press1 = (1.0 + press1 / 32768.0) * (self.P[0]);
         let press3 = 1048576.0 - adc_p;
-        if (press1 != 0.0) {
+        if press1 != 0.0 {
             press3 = (press3 - press2 / 4096.0) * 6250.0 / press1;
             press1 = self.P[8] * press3 * press3 / 2147483648.0;
             press2 = press3 * self.P[7] / 32768.0;
@@ -289,7 +289,8 @@ impl BMP280 {
         } else { 
             self.pressure = 0.0; 
         }
-        self.pressure_nn = self.pressure / pow(1 - ALTITUDE / 44330.0, 5.255);
+        let p: f32 = 1 - ALTITUDE / 44330.0;
+        self.pressure_nn = self.pressure / p.pow(5.255);
     
         Ok(())
     }
@@ -301,11 +302,11 @@ impl BMPSensor for BMP280 {
             temperature: 0.0,
             pressure: 0.0,
             pressure_nn: 0.0,
-            Dev: LinuxI2CDevice::new(dev_name, ADDR_L.into()).unwrap()
+            Dev: LinuxI2CDevice::new(dev_name, BMP280_I2C_ADDR_PRIM.into()).unwrap()
         }
     }
 
-    fn process(&mut self) -> Result<(), LinuxI2CError> {
+    fn process(&mut self) -> Result<()> {
         self.Process()
     }
 }
