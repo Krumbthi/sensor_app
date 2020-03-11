@@ -180,7 +180,7 @@ pub struct BMP280 {
     pub pressure: f32,
     pub pressure_nn: f32,
     T: [f32; 3],
-    P: [f32, 9],
+    P: [f32; 9],
     Dev: LinuxI2CDevice,
 }
 
