@@ -311,8 +311,8 @@ impl BMPSensor for BMP280 {
             temperature: 0.0,
             pressure: 0.0,
             pressure_nn: 0.0,
-            T: [0f32, 3],
-            P: [0f32, 9],
+            T: [0f32; 3],
+            P: [0f32; 9],
             Dev: LinuxI2CDevice::new(dev_name, BMP280_I2C_ADDR_PRIM.into()).unwrap()
         }
     }
