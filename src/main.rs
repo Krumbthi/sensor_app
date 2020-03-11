@@ -13,6 +13,7 @@ use rumqtt::{MqttClient, MqttOptions, QoS};
 // ------------------------------------------------------------------------------
 mod libs;
 use crate::libs::veml6070::VEML6070;
+use crate::libs::bmp280::BMP280;
 
 const OFF: u8 = 0;
 const ON: u8 = 1;
@@ -25,20 +26,6 @@ fn toggle_leds(val: f32) {
     let mut green = gpio::sysfs::SysFsGpioOutput::open(20).unwrap();
     let mut red = gpio::sysfs::SysFsGpioOutput::open(26).unwrap();
 
-    /* GPIO24 will be toggled every second in the background by a different thread
-    let mut value = false;
-    thread::spawn(move || loop {
-        green.set_value(value).expect("could not set gpio20");
-        thread::sleep(Duration::from_millis(1000));
-        value = !value;
-    });
-
-    // The main thread will simply display the current value of GPIO23 every 100ms.
-    loop {
-        red.set_value(!value).expect("could not set gpio26");
-        thread::sleep(Duration::from_millis(100));
-        value = !value;
-    }*/
     match val {
         19.5 ... 25.5 => {
             green.set_value(ON).expect("could not set gpio20");
