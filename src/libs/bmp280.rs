@@ -198,7 +198,7 @@ impl BMP280 {
         self.soft_reset();
         println!("Soft Reset done!");
 
-        let mut chip_id: u8 = self.Dev.smbus_read_byte_data(BMP280_CHIP_ID_ADDR)?;
+        let chip_id: u8 = self.Dev.smbus_read_byte_data(BMP280_CHIP_ID_ADDR)?;
         // self.Dev.write(&[BMP280_CHIP_ID_ADDR])?;
         // self.Dev.read(&mut chip_id)?;
 
@@ -212,9 +212,7 @@ impl BMP280 {
         Ok(())
     }
 
-    pub fn soft_reset(&self) {
-        let rslt: bool;
-        
+    pub fn soft_reset(&mut self) {        
         self.Dev.smbus_write_byte_data(BMP280_RESET_ADDR, BMP280_SOFT_RESET_CMD);
         thread::sleep(Duration::from_millis(SLEEP_TIME));
     }
@@ -291,7 +289,7 @@ impl BMP280 {
         press2 = (press2 / 4.0) + (self.P[3] * 65536.0);
         press1 = self.P[2] * press1 * press1 / 524288.0 + (self.P[1] * press1) / 524288.0;
         press1 = (1.0 + press1 / 32768.0) * (self.P[0]);
-        let press3 = 1048576.0 - adc_p;
+        let mut press3 = 1048576.0 - adc_p;
         if press1 != 0.0 {
             press3 = (press3 - press2 / 4096.0) * 6250.0 / press1;
             press1 = self.P[8] * press3 * press3 / 2147483648.0;
