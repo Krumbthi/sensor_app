@@ -236,14 +236,7 @@ impl BMP280 {
 
         t[0] = ((reg_data[0] as u16) << 8) | reg_data[1] as u16;
         t[1] = ((reg_data[2] as u16) << 8) | reg_data[3] as u16;
-        if t[1] > 32767 { 
-            t[1] -= 65536; 
-        }
-
         t[2] = ((reg_data[4] as u16) << 8) | reg_data[5] as u16;
-        if t[2] > 32767 { 
-            t[2] -= 65536; 
-        }
         
         self.T[0] = t[0] as f32;
         self.T[1] = t[1] as f32;
@@ -253,11 +246,8 @@ impl BMP280 {
         self.P[0] = p[0] as f32;
 
         for i in 0..8 {
-            p[i+1] = (reg_data[2*i+9] * 256 + reg_data[2*i+8]).into();
-            //p[i+1] = reg_data[2*i+9] * 256 + reg_data[2*i+8];            
-            if p[i+1] > 32767 { 
-                p[i+1] -= 65536; 
-            }
+            p[i+1] = (reg_data[2*i+9] as u16 ) * 256 + (reg_data[2*i+8] as u16);
+            //p[i+1] = reg_data[2*i+9] * 256 + reg_data[2*i+8];
             self.P[i+1] = p[i+1] as f32
         }
     }
