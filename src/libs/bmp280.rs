@@ -179,8 +179,8 @@ pub struct BMP280 {
 	pub temperature: f32,
     pub pressure: f32,
     pub pressure_nn: f32,
-    T: [u16; 3],
-    P: [u16; 9],
+    T: [f32; 3],
+    P: [f32, 9],
     Dev: LinuxI2CDevice,
 }
 
@@ -198,9 +198,9 @@ impl BMP280 {
         self.soft_reset();
         println!("Soft Reset done!");
 
-        let mut chip_id: u8; // = self.Dev.smbus_read_byte_data(BMP280_CHIP_ID_ADDR);
-        self.Dev.write(&[BMP280_CHIP_ID_ADDR])?;
-        self.Dev.read(&mut chip_id)?;
+        let mut chip_id: u8 = self.Dev.smbus_read_byte_data(BMP280_CHIP_ID_ADDR);
+        // self.Dev.write(&[BMP280_CHIP_ID_ADDR])?;
+        // self.Dev.read(&mut chip_id)?;
 
         if chip_id == BMP280_CHIP_ID {
             self.get_calib_data();
@@ -209,7 +209,7 @@ impl BMP280 {
             thread::sleep(Duration::from_millis(1000));
         }
         
-        OK(())
+        Ok(())
     }
 
     pub fn soft_reset(&self) {
@@ -228,33 +228,38 @@ impl BMP280 {
         self.Dev.write(&[reg_addr])?;
         self.Dev.read(&mut calib_data)?;
 
-        self.parse_temp_calib_data(&mut calib_data);
+        self.parse_temp_calib_data(calib_data);
+        Ok(())
     }
 
-    fn parse_temp_calib_data(&mut self, &mut reg_data: u8) {
-        //T[0] = BME280_CONCAT_BYTES(reg_data[1], reg_data[0]);
-        //T[1] = BME280_CONCAT_BYTES(reg_data[3], reg_data[2]);
-        // let mut T: [u16; 3] = [0; 3];
-        // let mut P: [u16; 9] = [0; 9];
+    fn parse_temp_calib_data(&mut self, reg_data: u8) {
+        let mut t: [u16; 3] = [0; 3];
+        let mut p: [u16; 9] = [0; 9];
 
-        self.T[0] = ((reg_data[0] as u16) << 8) | reg_data[1] as u16;
-        self.T[1] = ((reg_data[2] as u16) << 8) | reg_data[3] as u16;
-        if self.T[1] > 32767 { 
-            self.T[1] -= 65536; 
+        t[0] = ((reg_data[0] as u16) << 8) | reg_data[1] as u16;
+        t[1] = ((reg_data[2] as u16) << 8) | reg_data[3] as u16;
+        if t[1] > 32767 { 
+            t[1] -= 65536; 
         }
 
-        self.T[2] = ((reg_data[4] as u16) << 8) | reg_data[5] as u16;
-        if self.T[2] > 32767 { 
-            self.T[2] -= 65536; 
+        t[2] = ((reg_data[4] as u16) << 8) | reg_data[5] as u16;
+        if t[2] > 32767 { 
+            t[2] -= 65536; 
         }
         
-        self.P[0] = ((reg_data[6] as u16) << 8) | reg_data[7] as u16;
+        self.T[0] = t[0] as f32;
+        self.T[1] = t[1] as f32;
+        self.T[2] = t[2] as f32;
+
+        p[0] = ((reg_data[6] as u16) << 8) | reg_data[7] as u16;
+        self.P[0] = p[0] as f32;
 
         for i in 0..8 {
-            self.P[i+1] = reg_data[2*i+9]*256 + reg_data[2*i+8];
-            if self.P[i+1] > 32767 { 
-                self.P[i+1] -= 65536; 
+            p[i+1] = reg_data[2*i+9] * 256 + reg_data[2*i+8];            
+            if p[i+1] > 32767 { 
+                p[i+1] -= 65536; 
             }
+            self.P[i+1] = p[i+1] as f32
         }
     }
 
@@ -269,11 +274,11 @@ impl BMP280 {
         thread::sleep(Duration::from_millis(10));
 
         // Convert pressure and temperature data to 19-bits
-        let adc_p = (comp_data[0] << 12) + (comp_data[1] << 4) + (comp_data[2] >> 4);
-        let adc_t = (comp_data[3] << 12) + (comp_data[4] << 4) + (comp_data[5] >> 4);
+        let adc_p: f32 = ((comp_data[0] << 12) + (comp_data[1] << 4) + (comp_data[2] >> 4)) as f32;
+        let adc_t: f32 = ((comp_data[3] << 12) + (comp_data[4] << 4) + (comp_data[5] >> 4)) as f32;
 
         // temperature offset calculations
-        let temp1 = adc_t / 16384.0 - (self.T[0]/1024.0) * self.T[1];
+        let temp1 = adc_t / 16384.0 - (self.T[0] / 1024.0) * self.T[1];
         let temp3 = adc_t / 131072.0 - (self.T[0] / 8192.0);
         let temp2 = temp3 * temp3 * self.T[2];
         self.temperature = (temp1 + temp2) / 5120.0;
@@ -295,7 +300,7 @@ impl BMP280 {
             self.pressure = 0.0; 
         }
         let p: f32 = 1 - ALTITUDE / 44330.0;
-        self.pressure_nn = self.pressure / p.pow(5.255);
+        self.pressure_nn = self.pressure / p.powf(5.255);
     }
 }
 
