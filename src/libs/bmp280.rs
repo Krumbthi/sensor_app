@@ -172,7 +172,7 @@ const BMP280_CONFIG_ADDR: u8 = 0xF5;
 const BMP280_DATA_ADDR: u8 = 0xF7;
 const BMP280_SOFT_RESET_CMD: u8 = 0xB6;
 const BMP280_TEMP_PRESS_CALIB_DATA_LEN: usize = 24;
-const ALTITUDE: i32 = 500;
+const ALTITUDE: f32 = 500.0;
 const SLEEP_TIME: u64 = 40;
 
 pub struct BMP280 {
@@ -198,7 +198,7 @@ impl BMP280 {
         self.soft_reset();
         println!("Soft Reset done!");
 
-        let mut chip_id: u8 = self.Dev.smbus_read_byte_data(BMP280_CHIP_ID_ADDR);
+        let mut chip_id: u8 = self.Dev.smbus_read_byte_data(BMP280_CHIP_ID_ADDR)?;
         // self.Dev.write(&[BMP280_CHIP_ID_ADDR])?;
         // self.Dev.read(&mut chip_id)?;
 
@@ -228,11 +228,11 @@ impl BMP280 {
         self.Dev.write(&[reg_addr])?;
         self.Dev.read(&mut calib_data)?;
 
-        self.parse_temp_calib_data(calib_data);
+        self.parse_temp_calib_data(&calib_data);
         Ok(())
     }
 
-    fn parse_temp_calib_data(&mut self, reg_data: u8) {
+    fn parse_temp_calib_data(&mut self, reg_data: &[u8]) {
         let mut t: [u16; 3] = [0; 3];
         let mut p: [u16; 9] = [0; 9];
 
@@ -295,7 +295,7 @@ impl BMP280 {
             press3 = (press3 - press2 / 4096.0) * 6250.0 / press1;
             press1 = self.P[8] * press3 * press3 / 2147483648.0;
             press2 = press3 * self.P[7] / 32768.0;
-            self.pressure = (press3 + (press1 + press2 + (self.P[6])) / 16.0) / 100;
+            self.pressure = (press3 + (press1 + press2 + (self.P[6])) / 16.0) / 100.0;
         } else { 
             self.pressure = 0.0; 
         }
@@ -310,6 +310,8 @@ impl BMPSensor for BMP280 {
             temperature: 0.0,
             pressure: 0.0,
             pressure_nn: 0.0,
+            T: [0, 3],
+            P: [0, 9],
             Dev: LinuxI2CDevice::new(dev_name, BMP280_I2C_ADDR_PRIM.into()).unwrap()
         }
     }
