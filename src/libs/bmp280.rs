@@ -232,23 +232,23 @@ impl BMP280 {
         // let mut T: [u16; 3] = [0; 3];
         // let mut P: [u16; 9] = [0; 9];
 
-        T[0] = ((reg_data[0] as u16) << 8) | reg_data[1] as u16;
-        T[1] = ((reg_data[2] as u16) << 8) | reg_data[3] as u16;
-        if(T[1] > 32767) { 
-            T[1] -= 65536; 
+        self.T[0] = ((reg_data[0] as u16) << 8) | reg_data[1] as u16;
+        self.T[1] = ((reg_data[2] as u16) << 8) | reg_data[3] as u16;
+        if(self.T[1] > 32767) { 
+            self.T[1] -= 65536; 
         }
 
-        T[2] = ((reg_data[4] as u16) << 8) | reg_data[5] as u16;
-        if(T[2] > 32767) { 
-            T[2] -= 65536; 
+        self.T[2] = ((reg_data[4] as u16) << 8) | reg_data[5] as u16;
+        if(self.T[2] > 32767) { 
+            self.T[2] -= 65536; 
         }
         
-        P[0] = ((reg_data[6] as u16) << 8) | reg_data[7] as u16;
+        self.P[0] = ((reg_data[6] as u16) << 8) | reg_data[7] as u16;
 
         for i in 0..8 {
-            P[i+1] = reg_data[2*i+9]*256 + reg_data[2*i+8];
-            if(P[i+1] > 32767) { 
-                P[i+1] -= 65536; 
+            self.P[i+1] = reg_data[2*i+9]*256 + reg_data[2*i+8];
+            if(self.P[i+1] > 32767) { 
+                self.P[i+1] -= 65536; 
             }
         }
     }
@@ -268,28 +268,28 @@ impl BMP280 {
         let adc_t = (comp_data[3] << 12) + (comp_data[4] << 4) + (comp_data[5] >> 4);
 
         // temperature offset calculations
-        let temp1 = adc_t / 16384.0 - (T[0]/1024.0)*T[1];
-        let temp3 = adc_t / 131072.0 - (T[0]/8192.0);
-        let temp2 = temp3 * temp3 * T[2];
+        let temp1 = adc_t / 16384.0 - (self.T[0]/1024.0) * self.T[1];
+        let temp3 = adc_t / 131072.0 - (self.T[0] / 8192.0);
+        let temp2 = temp3 * temp3 * self.T[2];
         self.temperature = (temp1 + temp2) / 5120.0;
 
         // pressure offset calculations
         let mut press1 = ((temp1 + temp2) / 2.0) - 64000.0;
-        let mut press2 = press1 * press1 * P[5] / 32768.0;
-        press2 = press2 + press1 * P[4] * 2.0;
-        press2 = (press2 / 4.0) + (P[3] * 65536.0);
-        press1 = P[2] * press1 * press1 / 524288.0 + ( P[1] * press1) / 524288.0;
+        let mut press2 = press1 * press1 * self.P[5] / 32768.0;
+        press2 = press2 + press1 * self.P[4] * 2.0;
+        press2 = (press2 / 4.0) + (self.P[3] * 65536.0);
+        press1 = self.P[2] * press1 * press1 / 524288.0 + (self.P[1] * press1) / 524288.0;
         press1 = (1.0 + press1 / 32768.0) * (P[0]);
         let press3 = 1048576.0 - adc_p;
         if (press1 != 0.0) {
             press3 = (press3 - press2 / 4096.0) * 6250.0 / press1;
-            press1 = P[8] * press3 * press3 / 2147483648.0;
-            press2 = press3 * P[7] / 32768.0;
-            self.pressure = (press3 + (press1 + press2 + (P[6])) / 16.0) / 100;
+            press1 = self.P[8] * press3 * press3 / 2147483648.0;
+            press2 = press3 * self.P[7] / 32768.0;
+            self.pressure = (press3 + (press1 + press2 + (self.P[6])) / 16.0) / 100;
         } else { 
             self.pressure = 0.0; 
         }
-        self.pressure_nn = self.pressure / pow(1 - ALTITUDE/44330.0, 5.255);
+        self.pressure_nn = self.pressure / pow(1 - ALTITUDE / 44330.0, 5.255);
     
         Ok(())
     }
@@ -305,7 +305,7 @@ impl BMPSensor for BMP280 {
         }
     }
 
-    fn process(&mut self) {
+    fn process(&mut self) -> Result<(), LinuxI2CError> {
         self.Process()
     }
 }
