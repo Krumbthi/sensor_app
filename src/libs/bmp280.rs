@@ -401,6 +401,7 @@ impl Bmp280 {
         let var2 = (p8 * p) >> 19;
 
         let p = ((p + var1 + var2) >> 8) + (p7 << 4);
+        //println!("raw press: {}", p);
 
         Ok(p as f32 / 256.)
     }
