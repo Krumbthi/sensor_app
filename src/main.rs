@@ -1,10 +1,9 @@
 use linux_embedded_hal::{Delay, I2cdev};
 
-use std::thread;
+use std::{thread, process};
 use std::time::Duration;
 
-//use gpio::GpioOut;
-use rumqttc::{Client, MqttOptions, QoS};
+use rumqttc::{MqttOptions, Client, QoS, Event, Packet};
 
 // ------------------------------------------------------------------------------
 // HTU21D stuff
@@ -45,7 +44,25 @@ fn main() {
         // at least sleep for 5 seconds
         thread::sleep(Duration::from_millis(360000));
     });
+
     for (i, notification) in connection.iter().enumerate() {
-        println!("{:?}", notification)
+        match notification {
+            Ok(Event::Incoming(i)) => {
+                //debug!("Incomming: {:?}", i);
+                match i {
+                    Packet::Publish(p) => {
+                        println!("Payload: {:?}", p.payload);
+                        //if p.payload.to_vec() == "exit" {
+                        if p.payload.slice(0..4) == "exit" {
+                            process::exit(0);
+                        }
+                    },
+                    _ => (),
+                }
+            }
+            //Ok(Event::Outgoing(o)) => debug!("Outgoing: {:?}", o),
+            Err(e) => println!("Error = {:?}", e),
+            _ => (),
+        }
     }
 }
