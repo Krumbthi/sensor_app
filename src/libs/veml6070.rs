@@ -128,7 +128,7 @@ impl VEML6070 {
         self.Dev.read(&mut buf);
 
         let uvi = data | (buf[0] as u16);
-        println!("UV: {:?}", uvi);
+        // println!("UV: {:?}", uvi);
         uvi
     }
 }
