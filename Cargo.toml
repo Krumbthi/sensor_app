@@ -1,10 +1,15 @@
 [package]
-name = "test_gpio"
+name = "sensor_app"
 version = "0.1.0"
 authors = ["sourcedev <sourcedev@posteo.org>"]
 edition = "2018"
+license = "Apache-2.0"
+description = "Read BME280 data"
+repository = "https://github.com/Krumbthi/sensor_app.git"
 
 [dependencies]
 rumqttc = "0.10.0"
+log = "0.4"
+env_logger = "0.9"
 bme280 = "0.2.1"
 linux-embedded-hal = "0.3.0"
